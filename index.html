@@ -44,7 +44,10 @@
   </div>
 
   <div class="panel">
-    <div class="rowhead"><span>Levels</span><output id="peaks">L 0.00  R 0.00</output></div>
+    <div class="rowhead">
+      <span>Levels, decoded peak <output id="peakvalue">0.00 dBFS</output></span>
+      <output id="peaks">L 0.00  R 0.00</output>
+    </div>
     <div class="meter"><div id="meterL" class="fill"></div></div>
     <div class="meter"><div id="meterR" class="fill"></div></div>
   </div>
@@ -60,6 +63,20 @@
       Width cannot go above 100%, so collapsing it can never make a file louder
       than it already was. It cannot rescue one that arrives above full scale
       either, which is what the headroom notice above is for.
+    </p>
+  </div>
+
+  <div class="panel">
+    <div class="rowhead">
+      <label for="trim">Output trim</label>
+      <output id="trimvalue">0.0 dB</output>
+    </div>
+    <input type="range" id="trim" min="-24" max="0" step="0.5" value="0">
+    <p class="note">
+      Turn this down if you can still hear distortion. Some records were
+      mastered with clipping already in them, and nothing here can take that
+      back out, but pulling the level down stops your output stage adding more
+      of its own.
     </p>
   </div>
 

@@ -24,6 +24,7 @@ const state = {
   bypassed: false,
   decodedPeak: 0,
   headroom: 1,
+  trim: 0,
 };
 
 let nodes = null;
@@ -112,14 +113,15 @@ async function load(file) {
  * level of somebody's audio is worse than the clipping was.
  */
 function reportHeadroom() {
-  const over = state.decodedPeak > 1;
   const dB = 20 * Math.log10(state.decodedPeak || 1);
+  const over = state.decodedPeak > 1;
+  $("peakvalue").textContent = `${dB > 0 ? "+" : ""}${dB.toFixed(2)} dBFS`;
   $("headroom").hidden = !over;
   if (over) {
     $("headroom").textContent =
-      `This file decodes at +${dB.toFixed(2)} dBFS, above full scale. ` +
-      `Lossy codecs overshoot and resampling rings past the peak, and your ` +
-      `output would clamp it. Turned down by ${dB.toFixed(2)} dB so it does not.`;
+      `This file decodes at +${dB.toFixed(2)} dBFS, above full scale. Lossy ` +
+      `codecs overshoot and resampling rings past the peak, and your output ` +
+      `would clamp it. Turned down by ${dB.toFixed(2)} dB so it does not.`;
   }
 }
 
@@ -152,7 +154,7 @@ function buildGraph() {
   const right = ctx.createAnalyser();
   left.fftSize = right.fftSize = 2048;
   const output = ctx.createGain();
-  output.gain.value = state.headroom;
+  output.gain.value = state.headroom * Math.pow(10, state.trim / 20);
   merger.connect(output);
   output.connect(tap);
   tap.connect(left, 0);
@@ -161,18 +163,37 @@ function buildGraph() {
 
   nodes = { splitter, merger, output, gains, left, right,
             bufL: new Float32Array(left.fftSize), bufR: new Float32Array(right.fftSize) };
-  setWidth(state.width);
+  setWidth(state.width, true);
+  setTrim(state.trim);
 }
 
-function setWidth(width) {
+function setWidth(width, immediate = false) {
   state.width = width;
   const { a, b } = widthGains(state.bypassed ? 1 : width);
   const at = state.ctx ? state.ctx.currentTime : 0;
-  nodes.gains.ll.gain.setTargetAtTime(a, at, 0.01);
-  nodes.gains.rr.gain.setTargetAtTime(a, at, 0.01);
-  nodes.gains.rl.gain.setTargetAtTime(b, at, 0.01);
-  nodes.gains.lr.gain.setTargetAtTime(b, at, 0.01);
+  // Set outright when the graph is new. A gain node starts at 1, and ramping
+  // towards the target leaves all four at 1 for the first few tens of
+  // milliseconds, which is L + R rather than an average: a full sum, and it
+  // clips on anything loud. Ramping is only wanted when dragging.
+  for (const [node, target] of [[nodes.gains.ll, a], [nodes.gains.rr, a],
+                                [nodes.gains.rl, b], [nodes.gains.lr, b]]) {
+    if (immediate) {
+      node.gain.cancelScheduledValues(at);
+      node.gain.value = target;
+    } else {
+      node.gain.setTargetAtTime(target, at, 0.01);
+    }
+  }
   $("widthvalue").textContent = `${Math.round(width * 100)}%`;
+}
+
+function setTrim(db) {
+  state.trim = db;
+  const gain = Math.pow(10, db / 20);
+  if (nodes) {
+    nodes.output.gain.setTargetAtTime(state.headroom * gain, state.ctx.currentTime, 0.01);
+  }
+  $("trimvalue").textContent = `${db > 0 ? "+" : ""}${db.toFixed(1)} dB`;
 }
 
 // ---------------------------------------------------------------- transport
@@ -275,9 +296,10 @@ function save() {
   let [left, right] = applyWidth(b.getChannelData(0), b.getChannelData(1), state.width);
 
   // The same attenuation the player uses, so the file matches what you heard.
-  if (state.headroom < 1) {
-    left = left.map((v) => v * state.headroom);
-    right = right.map((v) => v * state.headroom);
+  const outGain = state.headroom * Math.pow(10, state.trim / 20);
+  if (outGain !== 1) {
+    left = left.map((v) => v * outGain);
+    right = right.map((v) => v * outGain);
   }
 
   if ($("normalise").checked) {
@@ -311,6 +333,7 @@ for (const type of ["dragleave", "drop"]) {
 drop.addEventListener("drop", (e) => e.dataTransfer.files[0] && load(e.dataTransfer.files[0]));
 
 $("width").addEventListener("input", (e) => setWidth(Number(e.target.value)));
+$("trim").addEventListener("input", (e) => setTrim(Number(e.target.value)));
 $("play").addEventListener("click", () => (state.playing ? pause() : play()));
 $("save").addEventListener("click", save);
 
