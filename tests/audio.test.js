@@ -13,6 +13,7 @@ import {
   applyWidth,
   correlation,
   encodeWav,
+  headroomGain,
   normaliseGain,
   peak,
   widthGains,
@@ -209,4 +210,44 @@ test("interleaving puts left and right in the right order", () => {
   );
   assert.ok(view.getFloat32(44, true) > 0, "first sample should be the left channel");
   assert.ok(view.getFloat32(48, true) < 0, "second sample should be the right channel");
+});
+
+test("a file that decodes within full scale needs no attenuation", () => {
+  assert.equal(headroomGain(0.9), 1);
+  assert.equal(headroomGain(1.0), 1);
+});
+
+test("a file that decodes above full scale is attenuated to fit", () => {
+  /**
+   * The bug that made this necessary. Lossy codecs reconstruct waveforms that
+   * exceed the original peak, and resampling rings past it at transients, so
+   * decoded audio routinely sits above 1.0. The output stage clamps, which is
+   * audible as clipping, and no amount of care in the width matrix prevents it
+   * because the matrix faithfully passes on what it was given.
+   */
+  assert.ok(Math.abs(headroomGain(1.19) - 1 / 1.19) < 1e-12);
+  assert.ok(Math.abs(1.19 * headroomGain(1.19) - 1) < 1e-12);
+});
+
+test("headroom only ever attenuates, never boosts", () => {
+  for (const p of [0, 0.01, 0.5, 0.99, 1, 1.5, 4]) {
+    assert.ok(headroomGain(p) <= 1, `peak ${p} produced a gain above 1`);
+  }
+});
+
+test("headroom on silence does not divide by zero", () => {
+  assert.equal(headroomGain(0), 1);
+});
+
+test("width collapse cannot rescue a file that arrives over full scale", () => {
+  /**
+   * Worth pinning, because it is exactly the wrong assumption I made. The
+   * matrix guarantees the output does not exceed the input peak. It says
+   * nothing about that peak being within full scale.
+   */
+  const l = Float32Array.from([1.19, -1.19, 0.5]);
+  const r = Float32Array.from([1.19, -1.19, 0.5]);
+  const [outL] = applyWidth(l, r, 0);
+  assert.ok(peak(outL) > 1, "still over full scale, as it must be");
+  assert.ok(peak(outL) * headroomGain(peak(outL)) <= 1 + 1e-12);
 });

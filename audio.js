@@ -79,6 +79,25 @@ export function peak(channel) {
   return highest;
 }
 
+/**
+ * The gain that brings a decoded buffer back under full scale, or 1 if it is
+ * already there. Only ever attenuates.
+ *
+ * Necessary because decoded audio routinely sits above 1.0 and nothing in the
+ * width matrix can help with that. Lossy codecs reconstruct waveforms that
+ * overshoot the original peak, and sample rate conversion rings past it at
+ * transients. A 16 bit WAV that cannot contain a value above 1.0 by definition
+ * still decodes to 1.23 once it has been resampled from 44100 to 48000.
+ *
+ * The output stage clamps anything above 1.0, which is audible as clipping, and
+ * it sounds like the tool broke the file when in fact the tool passed on
+ * exactly what the decoder handed it.
+ */
+export function headroomGain(decodedPeak) {
+  if (decodedPeak <= 1 || decodedPeak === 0) return 1;
+  return 1 / decodedPeak;
+}
+
 /** The gain that moves a given peak to a target in dBFS. */
 export function normaliseGain(currentPeak, targetDb = -1) {
   if (currentPeak === 0) return 1;

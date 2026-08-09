@@ -33,11 +33,30 @@ The whole thing is one 2x2 matrix:
 At `w = 1` nothing changes. At `w = 0` both channels become the average, which
 is mono. Everything between is a dial.
 
-**Width cannot go above 1, and that is what makes clipping impossible.** Expand
-that matrix and each output is a convex combination of the two inputs, so it can
-never exceed the peak that was already there. It is a property of the
-arithmetic, not a check that runs afterwards. Widening would break it, which is
-why it is not offered.
+**Width cannot go above 1, so collapsing can never make a file louder than it
+already was.** Expand that matrix and each output is a convex combination of the
+two inputs, so it cannot exceed the peak that was already there. That is a
+property of the arithmetic rather than a check that runs afterwards, and
+widening would break it, which is why it is not offered.
+
+That guarantee is narrower than it sounds, and I got it wrong the first time.
+"Never exceeds the input peak" is no help when the input peak is already above
+full scale, which decoded audio very often is:
+
+| file | decoded peak | samples over full scale |
+|---|---|---|
+| 0 dBFS square wave, 320 kbps MP3 | 1.190, `+1.51 dBFS` | 17.4% |
+| the same square wave as 16 bit WAV | 1.228, `+1.79 dBFS` | 23.8% |
+
+Lossy codecs reconstruct waveforms that overshoot the original, and sample rate
+conversion rings past the peak at transients. The WAV row is the surprising one:
+a 16 bit file cannot contain a value above 1.0 by definition, and it still
+decodes to 1.228 once the browser has resampled it from 44100 to 48000.
+
+Your output stage clamps anything above 1.0, and that clamping is audible. So
+unpan measures the decoded peak, turns the whole thing down by exactly enough to
+fit, and says on screen that it did. Silently changing the level of somebody's
+audio would be worse than the clipping was.
 
 ## Channel correlation
 

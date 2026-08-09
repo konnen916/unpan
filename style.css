@@ -136,3 +136,15 @@ button:disabled { opacity: 0.5; cursor: default; }
 
 footer { margin-top: 2rem; font-size: 0.85rem; color: var(--dim); }
 a { color: inherit; }
+
+/* Shown only when the decoded audio arrives above full scale, which is common
+   and is not something the tool caused. */
+.headroom {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--warn);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin: 0 0 0.9rem;
+  font-size: 0.85rem;
+  color: var(--dim);
+}

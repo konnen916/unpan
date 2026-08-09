@@ -30,6 +30,7 @@
 <section id="work" hidden>
 
   <div id="meta" class="meta"></div>
+  <p id="headroom" class="headroom" hidden></p>
 
   <div class="panel">
     <div class="rowhead">
@@ -56,8 +57,9 @@
     <input type="range" id="width" min="0" max="1" step="0.01" value="1">
     <div class="ends"><span>mono</span><span>untouched</span></div>
     <p class="note">
-      Width cannot go above 100%, which is what makes clipping impossible rather
-      than something to correct afterwards.
+      Width cannot go above 100%, so collapsing it can never make a file louder
+      than it already was. It cannot rescue one that arrives above full scale
+      either, which is what the headroom notice above is for.
     </p>
   </div>
 

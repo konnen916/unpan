@@ -8,7 +8,7 @@
  * shares the path the tests cover.
  */
 
-import { applyWidth, correlation, encodeWav, normaliseGain, peak, widthGains } from "./audio.js";
+import { applyWidth, correlation, encodeWav, headroomGain, normaliseGain, peak, widthGains } from "./audio.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -22,6 +22,8 @@ const state = {
   offset: 0,
   width: 1,
   bypassed: false,
+  decodedPeak: 0,
+  headroom: 1,
 };
 
 let nodes = null;
@@ -84,6 +86,11 @@ async function load(file) {
       ? `. Your browser decoded it at ${b.sampleRate} Hz, which is this device's rate. If the file was recorded at something else it has been resampled, and the export will match what you hear.`
       : ".");
 
+  state.decodedPeak = Math.max(peak(b.getChannelData(0)),
+                               b.numberOfChannels > 1 ? peak(b.getChannelData(1)) : 0);
+  state.headroom = headroomGain(state.decodedPeak);
+  reportHeadroom();
+
   if (b.numberOfChannels < 2) {
     fail("That file is already mono, so there is nothing to collapse.");
     return;
@@ -93,6 +100,27 @@ async function load(file) {
   $("work").hidden = false;
   updateStatic();
   requestAnimationFrame(meter);
+}
+
+/**
+ * Decoded audio very often sits above full scale, and the output stage clamps
+ * anything that does, which is audible as clipping. That is not something the
+ * width matrix can prevent: it guarantees the output does not exceed the input
+ * peak, which is no help when the input peak is 1.19.
+ *
+ * So it is attenuated to fit, and said out loud, because silently changing the
+ * level of somebody's audio is worse than the clipping was.
+ */
+function reportHeadroom() {
+  const over = state.decodedPeak > 1;
+  const dB = 20 * Math.log10(state.decodedPeak || 1);
+  $("headroom").hidden = !over;
+  if (over) {
+    $("headroom").textContent =
+      `This file decodes at +${dB.toFixed(2)} dBFS, above full scale. ` +
+      `Lossy codecs overshoot and resampling rings past the peak, and your ` +
+      `output would clamp it. Turned down by ${dB.toFixed(2)} dB so it does not.`;
+  }
 }
 
 // -------------------------------------------------------------------- graph
@@ -123,12 +151,15 @@ function buildGraph() {
   const left = ctx.createAnalyser();
   const right = ctx.createAnalyser();
   left.fftSize = right.fftSize = 2048;
-  merger.connect(tap);
+  const output = ctx.createGain();
+  output.gain.value = state.headroom;
+  merger.connect(output);
+  output.connect(tap);
   tap.connect(left, 0);
   tap.connect(right, 1);
-  merger.connect(ctx.destination);
+  output.connect(ctx.destination);
 
-  nodes = { splitter, merger, gains, left, right,
+  nodes = { splitter, merger, output, gains, left, right,
             bufL: new Float32Array(left.fftSize), bufR: new Float32Array(right.fftSize) };
   setWidth(state.width);
 }
@@ -242,6 +273,12 @@ const fmt = (seconds) =>
 function save() {
   const b = state.buffer;
   let [left, right] = applyWidth(b.getChannelData(0), b.getChannelData(1), state.width);
+
+  // The same attenuation the player uses, so the file matches what you heard.
+  if (state.headroom < 1) {
+    left = left.map((v) => v * state.headroom);
+    right = right.map((v) => v * state.headroom);
+  }
 
   if ($("normalise").checked) {
     const gain = normaliseGain(Math.max(peak(left), peak(right)), -1);
