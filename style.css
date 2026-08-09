@@ -1,0 +1,138 @@
+/*
+ * Plain on purpose. It follows whatever the machine is already set to rather
+ * than picking a palette, because a utility that looks like a brand is a
+ * utility asking to be distrusted.
+ */
+
+:root {
+  color-scheme: light dark;
+  --line: color-mix(in srgb, currentColor 18%, transparent);
+  --sunk: color-mix(in srgb, currentColor 8%, transparent);
+  --dim: color-mix(in srgb, currentColor 60%, transparent);
+  --warn: #cc4444;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 2rem 1rem 4rem;
+  font: 16px/1.55 system-ui, sans-serif;
+}
+
+main { max-width: 40rem; margin: 0 auto; }
+
+h1 { font-size: 1.6rem; margin: 0 0 0.4rem; letter-spacing: -0.01em; }
+.lede { margin: 0 0 0.6rem; }
+.note { color: var(--dim); font-size: 0.85rem; margin: 0.5rem 0 0; }
+.error { color: var(--warn); font-size: 0.9rem; }
+
+header { margin-bottom: 1.5rem; }
+
+.drop {
+  border: 2px dashed var(--line);
+  border-radius: 8px;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+.drop.over { border-style: solid; background: var(--sunk); }
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.meta {
+  font-size: 0.85rem;
+  color: var(--dim);
+  margin-bottom: 0.9rem;
+  word-break: break-all;
+}
+
+.rowhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+.rowhead output { font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
+
+/* Correlation, drawn as a needle on a line rather than as a number alone,
+   because the interesting part is which way it moves as you drag width. */
+.corrbar {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+}
+.needle {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: left 80ms linear;
+}
+.corrscale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--dim);
+  margin-top: 0.35rem;
+}
+
+.meter {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.fill { height: 100%; width: 0; background: currentColor; opacity: 0.55; }
+
+input[type="range"] { width: 100%; }
+.ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--dim);
+  margin-top: 0.15rem;
+}
+
+.transport { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+.seek {
+  flex: 1 1 8rem;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  cursor: pointer;
+}
+.progress { height: 100%; width: 0; background: currentColor; opacity: 0.5; }
+.transport output { font-variant-numeric: tabular-nums; font-size: 0.85rem; color: var(--dim); }
+
+.controls { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.8rem; font-size: 0.9rem; }
+.controls label { display: flex; align-items: center; gap: 0.35rem; }
+
+button {
+  font: inherit;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--sunk);
+  color: inherit;
+  cursor: pointer;
+}
+button:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
+button:active, button.held { background: color-mix(in srgb, currentColor 22%, transparent); }
+button:disabled { opacity: 0.5; cursor: default; }
+
+footer { margin-top: 2rem; font-size: 0.85rem; color: var(--dim); }
+a { color: inherit; }

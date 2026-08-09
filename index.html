@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>unpan, fix hard panned recordings</title>
+<meta name="description" content="Collapse the stereo width of badly panned recordings, in your browser. Nothing is uploaded.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<header>
+  <h1>unpan</h1>
+  <p class="lede">
+    Old records were often mixed with the drums hard left and everything else
+    hard right. Fine on speakers, unbearable on headphones. This pulls them
+    back together.
+  </p>
+  <p class="note">Everything happens in this tab. Nothing is uploaded anywhere.</p>
+</header>
+
+<section id="drop" class="drop">
+  <input type="file" id="file" accept="audio/*" hidden>
+  <button type="button" id="pick">Choose an audio file</button>
+  <p class="note">or drop one here. mp3, wav, flac, m4a, ogg, whatever your browser can decode.</p>
+  <p id="loaderr" class="error" hidden></p>
+</section>
+
+<section id="work" hidden>
+
+  <div id="meta" class="meta"></div>
+
+  <div class="panel">
+    <div class="rowhead">
+      <span>Channel correlation</span>
+      <output id="corrvalue">0.00</output>
+    </div>
+    <div class="corr"><div class="corrbar"><div id="corrneedle" class="needle"></div></div>
+      <div class="corrscale"><span>-1 inverted</span><span>0 unrelated</span><span>+1 mono</span></div>
+    </div>
+    <p class="note" id="corrsays"></p>
+  </div>
+
+  <div class="panel">
+    <div class="rowhead"><span>Levels</span><output id="peaks">L 0.00  R 0.00</output></div>
+    <div class="meter"><div id="meterL" class="fill"></div></div>
+    <div class="meter"><div id="meterR" class="fill"></div></div>
+  </div>
+
+  <div class="panel">
+    <div class="rowhead">
+      <label for="width">Stereo width</label>
+      <output id="widthvalue">100%</output>
+    </div>
+    <input type="range" id="width" min="0" max="1" step="0.01" value="1">
+    <div class="ends"><span>mono</span><span>untouched</span></div>
+    <p class="note">
+      Width cannot go above 100%, which is what makes clipping impossible rather
+      than something to correct afterwards.
+    </p>
+  </div>
+
+  <div class="panel transport">
+    <button type="button" id="play">Play</button>
+    <button type="button" id="bypass" class="secondary" title="Hold to hear the original">Compare original</button>
+    <div id="seek" class="seek"><div id="progress" class="progress"></div></div>
+    <output id="time">0:00 / 0:00</output>
+  </div>
+
+  <div class="panel">
+    <div class="rowhead"><span>Export</span></div>
+    <div class="controls">
+      <label><input type="radio" name="depth" value="24" checked> 24 bit</label>
+      <label><input type="radio" name="depth" value="32"> 32 bit float</label>
+      <label><input type="checkbox" id="normalise"> Normalise to &minus;1 dBFS</label>
+    </div>
+    <button type="button" id="save">Download WAV</button>
+    <p class="note">
+      WAV, not MP3. Whatever you loaded has already been through an encoder once,
+      and re-encoding it would lose more. Nothing here can add quality that was
+      never in the file, so the only honest export is one that takes nothing
+      further away.
+    </p>
+  </div>
+
+</section>
+
+<footer>
+  <p>
+    <a href="https://github.com/konnen916/unpan">Source</a>.
+    The maths is a 2&times;2 mid/side matrix and it is about forty lines.
+  </p>
+</footer>
+
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
